@@ -62,14 +62,15 @@ class AuthCubit extends Cubit<AuthState> {
   void setOtp(String v) => emit(state.copyWith(otp: v));
   void setRole(UserRole r) {
     if (state.loading) return;
-    emit(state.copyWith(role: r, showErrors: false, clearError: true));
+    emit(state.copyWith(role: r, name: '', phone: '', otp: '', epoch: state.epoch + 1, showErrors: false, clearError: true));
   }
 
   void markAstrologerReady() => emit(state.copyWith(astrologerReady: true));
 
   void toggleMode() {
     if (state.loading) return;
-    emit(state.copyWith(isSignUp: !state.isSignUp, showErrors: false, clearError: true));
+    emit(state.copyWith(
+        isSignUp: !state.isSignUp, name: '', phone: '', otp: '', epoch: state.epoch + 1, showErrors: false, clearError: true));
   }
 
   /// Resumes the saved login. Firebase restores the session asynchronously (always on web), so wait for its first
@@ -106,7 +107,7 @@ class AuthCubit extends Cubit<AuthState> {
       try {
         _webConfirmation = await Backend.auth.signInWithPhoneNumber(fullPhone);
         if (!isClosed) {
-          emit(state.copyWith(loading: false, status: AuthStatus.otpPending, otp: '', showErrors: false));
+          emit(state.copyWith(loading: false, status: AuthStatus.otpPending, otp: '', epoch: state.epoch + 1, showErrors: false));
         }
       } catch (e) {
         if (!isClosed) emit(state.copyWith(loading: false, error: Backend.message(e)));
@@ -125,7 +126,7 @@ class AuthCubit extends Cubit<AuthState> {
         _verificationId = id;
         _resendToken = token;
         if (!isClosed) {
-          emit(state.copyWith(loading: false, status: AuthStatus.otpPending, otp: '', showErrors: false));
+          emit(state.copyWith(loading: false, status: AuthStatus.otpPending, otp: '', epoch: state.epoch + 1, showErrors: false));
         }
       },
       codeAutoRetrievalTimeout: (id) => _verificationId = id,
@@ -171,6 +172,10 @@ class AuthCubit extends Cubit<AuthState> {
       return emit(state.copyWith(
         loading: false,
         status: AuthStatus.unauthenticated,
+        name: '',
+        phone: '',
+        otp: '',
+        epoch: state.epoch + 1,
         error: AppStrings.errWrongRole(profile.role.label),
       ));
     }
@@ -214,6 +219,6 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> logout() async {
     await Backend.auth.signOut();
-    emit(const AuthState(status: AuthStatus.unauthenticated));
+    emit(AuthState(status: AuthStatus.unauthenticated, epoch: state.epoch + 1));
   }
 }

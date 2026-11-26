@@ -244,6 +244,7 @@ class AppStrings {
   static const noRequests = 'No requests right now';
   static const activeConsultation = 'Active consultation';
   static const resume = 'Resume';
+  static const endConsultation = 'End';
   static const accept = 'Accept';
   static const decline = 'Decline';
   static const recentConsultations = 'Recent consultations';
@@ -345,6 +346,8 @@ class AppStrings {
   static const speaker = 'Speaker';
   static const guestName = 'Guest';
   static const errMicPermission = 'Microphone permission is required for calls.';
+  static const errUnsupportedDevice =
+      'Calls are not supported on this device. Use a real Android phone (ARM), not an x86 emulator.';
   static const errCamPermission =
       'Camera and microphone permissions are required for video calls.';
   static const errDisconnected = 'Call disconnected. Tap retry to rejoin.';

@@ -4,6 +4,7 @@ import 'package:videosdk/videosdk.dart';
 
 import '../../app_constants.dart';
 import '../auth/auth_controller.dart';
+import '../video_call/video_call_model.dart' show callsSupportedOnThisDevice;
 import 'voice_call_model.dart';
 import 'voice_call_state.dart';
 
@@ -24,6 +25,9 @@ class VoiceCallCubit extends Cubit<VoiceCallState> {
 
   Future<void> start() async {
     emit(const VoiceCallState());
+    if (!callsSupportedOnThisDevice) {
+      return emit(state.copyWith(phase: CallPhase.failed, error: AppStrings.errUnsupportedDevice));
+    }
     try {
       final perm = await VideoSDK.requestPermissions(Permissions.AUDIO);
       if (perm[AppConfig.permAudio] != true) {

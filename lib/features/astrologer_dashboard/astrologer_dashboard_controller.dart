@@ -49,6 +49,15 @@ class AstrologerDashboardCubit extends Cubit<AstrologerDashboardState> {
     }
   }
 
+  /// Ends a consultation straight from the dashboard, so a call that cannot open never keeps the astrologer busy.
+  Future<void> endActive(ConsultSession session) async {
+    try {
+      await Backend.call(Fn.endSession, {Fn.argSessionId: session.id});
+    } catch (e) {
+      emit(state.copyWith(error: AppStrings.endFailed(Backend.message(e))));
+    }
+  }
+
   /// Returns true when the request was answered successfully.
   Future<bool> respond(ConsultSession request, {required bool accept}) async {
     if (state.respondingId != null) return false;

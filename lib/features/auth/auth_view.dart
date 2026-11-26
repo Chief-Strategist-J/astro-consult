@@ -77,6 +77,7 @@ class AuthView extends StatelessWidget {
   List<Widget> _credentialFields(BuildContext context, AuthState s, AuthCubit c) => [
         if (s.isSignUp)
           TextFormField(
+            key: ValueKey('name-${s.epoch}'),
             initialValue: s.name,
             onChanged: c.setName,
             textCapitalization: TextCapitalization.words,
@@ -87,6 +88,7 @@ class AuthView extends StatelessWidget {
             ),
           ),
         TextFormField(
+          key: ValueKey('phone-${s.epoch}'),
           initialValue: s.phone,
           onChanged: c.setPhone,
           keyboardType: TextInputType.phone,
@@ -116,6 +118,7 @@ class AuthView extends StatelessWidget {
 
   List<Widget> _otpFields(BuildContext context, AuthState s, AuthCubit c) => [
         TextFormField(
+          key: ValueKey('otp-${s.epoch}'),
           initialValue: s.otp,
           onChanged: c.setOtp,
           keyboardType: TextInputType.number,

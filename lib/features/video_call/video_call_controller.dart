@@ -24,12 +24,18 @@ class VideoCallCubit extends Cubit<VideoCallState> {
 
   Future<void> start() async {
     emit(const VideoCallState());
+    if (!callsSupportedOnThisDevice) {
+      return _safe(() => emit(state.copyWith(phase: VideoPhase.failed, error: AppStrings.errUnsupportedDevice)));
+    }
     try {
       final perm = await VideoSDK.requestPermissions(Permissions.AUDIO_VIDEO);
       if (perm[AppConfig.permAudio] != true || perm[AppConfig.permVideo] != true) {
-        return emit(state.copyWith(
-            phase: VideoPhase.failed, error: AppStrings.errCamPermission));
+        return _safe(() => emit(state.copyWith(
+            phase: VideoPhase.failed, error: AppStrings.errCamPermission)));
       }
+      // Bluetooth audio routing needs this on Android 12+; not required to join.
+      await VideoSDK.requestBluetoothPermission().catchError((_) => false);
+      if (_closed) return;
       final vr = VideoRoom.fromMap(await Backend.call(Fn.getVideoSdkRoom, {Fn.argSessionId: sessionId}));
       if (_closed) return;
       await _disposeRoom();
@@ -42,10 +48,10 @@ class VideoCallCubit extends Cubit<VideoCallState> {
       );
       _room = room;
       _wire(room);
-      emit(state.copyWith(phase: VideoPhase.joining));
+      _safe(() => emit(state.copyWith(phase: VideoPhase.joining)));
       await room.join();
     } catch (e) {
-      if (!_closed) emit(state.copyWith(phase: VideoPhase.failed, error: Backend.message(e)));
+      _safe(() => emit(state.copyWith(phase: VideoPhase.failed, error: Backend.message(e))));
     }
   }
 
@@ -102,9 +108,9 @@ class VideoCallCubit extends Cubit<VideoCallState> {
     if (room == null || !_joined) return;
     try {
       state.micOn ? await room.muteMic() : await room.unmuteMic();
-      emit(state.copyWith(micOn: !state.micOn));
+      _safe(() => emit(state.copyWith(micOn: !state.micOn)));
     } catch (_) {
-      emit(state.copyWith(error: AppStrings.errMicToggle));
+      _safe(() => emit(state.copyWith(error: AppStrings.errMicToggle)));
     }
   }
 
@@ -113,9 +119,9 @@ class VideoCallCubit extends Cubit<VideoCallState> {
     if (room == null || !_joined) return;
     try {
       state.camOn ? await room.disableCam() : await room.enableCam();
-      emit(state.copyWith(camOn: !state.camOn));
+      _safe(() => emit(state.copyWith(camOn: !state.camOn)));
     } catch (_) {
-      emit(state.copyWith(error: AppStrings.errCamToggle));
+      _safe(() => emit(state.copyWith(error: AppStrings.errCamToggle)));
     }
   }
 
@@ -125,11 +131,11 @@ class VideoCallCubit extends Cubit<VideoCallState> {
     try {
       await room.changeCam();
     } catch (_) {
-      emit(state.copyWith(error: AppStrings.errCamSwitch));
+      _safe(() => emit(state.copyWith(error: AppStrings.errCamSwitch)));
     }
   }
 
-  void clearError() => emit(state.copyWith(clearError: true));
+  void clearError() => _safe(() => emit(state.copyWith(clearError: true)));
 
   Future<void> _disposeRoom() async {
     final room = _room;
@@ -144,7 +150,14 @@ class VideoCallCubit extends Cubit<VideoCallState> {
   @override
   Future<void> close() async {
     _closed = true;
-    await _disposeRoom();
+    final room = _room;
+    if (room != null) {
+      // Stop listening now, but give the native video views a moment to detach
+      // before leave() releases the tracks they are still bound to.
+      room.removeAllEventListeners();
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await _disposeRoom();
+    }
     return super.close();
   }
 }
