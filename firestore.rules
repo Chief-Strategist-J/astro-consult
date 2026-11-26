@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function session(sid) { return get(/databases/$(database)/documents/sessions/$(sid)).data; }
+    function isUserOf(sid) { return signedIn() && session(sid).userId == request.auth.uid; }
+    function isAstrologerOf(sid) { return signedIn() && session(sid).astrologerId == request.auth.uid; }
+
+    // Profile: owner only. Role is chosen at sign-up and can never change; phone can never change.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name','phone','role','dob','birthTime','birthPlace','createdAt'])
+        && request.resource.data.role in ['user','astrologer']
+        && request.resource.data.name is string && request.resource.data.name.size() < 80;
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.phone == resource.data.phone
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.keys().hasOnly(['name','phone','role','dob','birthTime','birthPlace','createdAt']);
+    }
+
+    // Catalogue is read-only for clients; astrologers edit their profile through Cloud Functions.
+    match /astrologers/{id} {
+      allow read: if signedIn();
+      match /reviews/{rid} { allow read: if signedIn(); }
+    }
+
+    // Sessions are created/updated only by Cloud Functions; both parties can read them.
+    match /sessions/{sid} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.astrologerId == request.auth.uid);
+
+      // A participant can only post as their own role, and only while the consultation is ongoing.
+      match /messages/{mid} {
+        allow read: if isUserOf(sid) || isAstrologerOf(sid);
+        allow create: if signedIn() && session(sid).status == 'ongoing'
+          && ((session(sid).userId == request.auth.uid && request.resource.data.from == 'user')
+              || (session(sid).astrologerId == request.auth.uid && request.resource.data.from == 'astrologer'))
+          && request.resource.data.keys().hasOnly(['text','from','createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt == request.time;
+      }
+
+      // Typing / online indicators: each party writes only its own document.
+      match /presence/{who} {
+        allow read: if isUserOf(sid) || isAstrologerOf(sid);
+        allow create, update: if ((who == 'user' && isUserOf(sid)) || (who == 'astrologer' && isAstrologerOf(sid)))
+          && request.resource.data.keys().hasOnly(['online','typing','updatedAt'])
+          && request.resource.data.online is bool && request.resource.data.typing is bool
+          && request.resource.data.updatedAt == request.time;
+      }
+    }
+  }
+}
