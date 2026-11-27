@@ -7,6 +7,11 @@ Flutter · Bloc · Firebase (Auth, Firestore, Cloud Functions, Cloud Scheduler) 
 
 > Android and iOS only. The VideoSDK Flutter plugin (5.x) does not support web.
 
+## Demo
+
+[▶ Watch the video call demo](docs/demo/video-call-demo.mp4): screen recording of the astrologer app on a real Android
+phone, from login to a live video call, ending with the consultation summary.
+
 ## Screenshots
 
 Every page, rendered with realistic data (regenerate with `scripts/capture_screens.sh`):

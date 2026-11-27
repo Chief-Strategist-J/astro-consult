@@ -17,6 +17,7 @@ class AuthState extends Equatable {
     this.phone = '',
     this.otp = '',
     this.showErrors = false,
+    this.epoch = 0,
     this.user,
   });
 
@@ -25,6 +26,8 @@ class AuthState extends Equatable {
   final bool loading, isSignUp, showErrors, astrologerReady;
   final String? error;
   final String name, phone, otp;
+  /// Bumped whenever the form fields must be rebuilt empty, so a field never shows text from an earlier attempt.
+  final int epoch;
   final UserModel? user;
 
   String? get nameError =>
@@ -45,6 +48,7 @@ class AuthState extends Equatable {
     String? phone,
     String? otp,
     bool? showErrors,
+    int? epoch,
     UserModel? user,
   }) =>
       AuthState(
@@ -58,9 +62,10 @@ class AuthState extends Equatable {
         phone: phone ?? this.phone,
         otp: otp ?? this.otp,
         showErrors: showErrors ?? this.showErrors,
+        epoch: epoch ?? this.epoch,
         user: user ?? this.user,
       );
 
   @override
-  List<Object?> get props => [status, loading, error, role, astrologerReady, isSignUp, name, phone, otp, showErrors, user];
+  List<Object?> get props => [status, loading, error, role, astrologerReady, isSignUp, name, phone, otp, showErrors, epoch, user];
 }

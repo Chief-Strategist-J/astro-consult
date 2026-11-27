@@ -56,10 +56,16 @@ class AstrologerDashboardView extends StatelessWidget {
                             child: ListTile(
                               leading: Icon(Icons.phone_in_talk_rounded, color: context.tokens.success),
                               title: Text(AppStrings.requestTitle(s.active!.userName, s.active!.type.label)),
-                              trailing: FilledButton(
-                                onPressed: () => _open(context, s.active!),
-                                child: const Text(AppStrings.resume),
-                              ),
+                              trailing: Row(mainAxisSize: MainAxisSize.min, spacing: AppSpacing.s, children: [
+                                OutlinedButton(
+                                  onPressed: () => cubit.endActive(s.active!),
+                                  child: const Text(AppStrings.endConsultation),
+                                ),
+                                FilledButton(
+                                  onPressed: () => _open(context, s.active!),
+                                  child: const Text(AppStrings.resume),
+                                ),
+                              ]),
                             ),
                           ),
                         ]),
@@ -94,7 +100,6 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = state.account!;
-    final busy = a.status == Availability.busy;
     final label = switch (a.status) {
       Availability.online => AppStrings.youAreOnline,
       Availability.busy => AppStrings.youAreBusy,
@@ -121,7 +126,7 @@ class _AccountCard extends StatelessWidget {
             title: Text(label, style: TextStyle(color: a.status.color(context), fontWeight: FontWeight.w600)),
             subtitle: const Text(AppStrings.availabilityHint),
             value: a.status != Availability.offline,
-            onChanged: busy || state.togglingAvailability ? null : onToggle,
+            onChanged: state.togglingAvailability ? null : onToggle,
           ),
         ]),
       ),

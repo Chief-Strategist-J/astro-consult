@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:videosdk/videosdk.dart';
 
 import '../../app_constants.dart';
@@ -21,3 +24,6 @@ extension ParticipantVideo on Participant {
     return null;
   }
 }
+
+/// The VideoSDK native library ships for ARM only, so calls cannot start on an x86 Android emulator or device.
+bool get callsSupportedOnThisDevice => kIsWeb || !Platform.isAndroid || !Platform.version.contains('x64') && !Platform.version.contains('ia32');

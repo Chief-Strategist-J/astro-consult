@@ -117,7 +117,14 @@ exports.setAvailability = onCall(opts, async (req) => {
   const status = await db.runTransaction(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw fail(K.ERR.FAILED_PRECONDITION, K.MSG.NO_ASTROLOGER_PROFILE);
-    if (snap.data().status === K.AVAIL.BUSY) throw fail(K.ERR.FAILED_PRECONDITION, K.MSG.FINISH_FIRST);
+    if (snap.data().status === K.AVAIL.BUSY) {
+      // Busy is only real while a consultation is ongoing; a crashed or abandoned call must not lock the astrologer out.
+      const ongoing = await t.get(db.collection(K.COL.SESSIONS)
+        .where('astrologerId', K.OP.EQ, uid)
+        .where(K.FIELD.STATUS, K.OP.EQ, K.STATUS.ONGOING)
+        .limit(1));
+      if (!ongoing.empty) throw fail(K.ERR.FAILED_PRECONDITION, K.MSG.FINISH_FIRST);
+    }
     const next = req.data?.online ? K.AVAIL.ONLINE : K.AVAIL.OFFLINE;
     t.update(ref, { status: next });
     return next;
